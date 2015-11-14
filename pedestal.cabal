@@ -1,0 +1,48 @@
+name:                pedestal
+version:             0.1.0.0
+synopsis:            SDF Creation Pedestal
+description:         See Readme
+homepage:            http://github.com/cabbibo/pedestal
+license:             BSD3
+license-file:        LICENSE
+author:              Luke Iannini / Isaac Cohen
+maintainer:          who@tree.is
+-- copyright:           
+category:            Game
+build-type:          Simple
+-- extra-source-files:  
+cabal-version:       >=1.10
+
+Flag UseOculusSDK
+  Description: Enable direct Oculus SDK support (rather than via SteamVR)
+  Default:     False
+
+
+executable gallery
+  hs-source-dirs:      app
+  main-is:             Pedestal.hs
+  ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , vr-pal
+                     , glfw-pal
+                     , gl-pal
+                     , vr-pal
+                     , gl
+                     , linear-extra
+                     , mtl
+                     , lens-extra
+                     , halive
+                     , random
+                     , containers
+                     , MonadRandom
+                     , time
+                     , lens
+                     , linear
+                     , split
+
+  default-language:    Haskell2010
+
+
+source-repository head
+  type:     git
+  location: https://github.com/cabbibo/pedestal

@@ -1,0 +1,13 @@
+flags: {}
+packages:
+- '.'
+- '../gl-pal'
+- '../glfw-pal'
+- '../vr-pal'
+- '../hydra-hs'
+- '../oculus-mini'
+- '../halive'
+- '../linear-extra'
+- '../lens-extra'
+- '../openvr-hs'
+resolver: nightly-2015-11-03
