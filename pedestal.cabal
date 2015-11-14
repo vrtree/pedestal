@@ -2,7 +2,7 @@ name:                pedestal
 version:             0.1.0.0
 synopsis:            SDF Creation Pedestal
 description:         See Readme
-homepage:            http://github.com/cabbibo/pedestal
+homepage:            https://github.com/vrtree/pedestal
 license:             BSD3
 license-file:        LICENSE
 author:              Luke Iannini / Isaac Cohen
@@ -45,4 +45,4 @@ executable gallery
 
 source-repository head
   type:     git
-  location: https://github.com/cabbibo/pedestal
+  location: https://github.com/vrtree/pedestal
