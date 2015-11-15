@@ -18,7 +18,7 @@ Flag UseOculusSDK
   Default:     False
 
 
-executable gallery
+executable pedestal
   hs-source-dirs:      app
   main-is:             Pedestal.hs
   ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N

@@ -31,10 +31,10 @@ void main() {
     float spec = max( 0. , dot( eyeDir, refl ));
 
 
-    float lPower = 30. / pow( length( light ), 5.);
+    float lPower = 5. / pow( length( light ), 5.);
     float lDot = dot( nNorm , lightDir );
 
-    vec3 col = vec3( lDot * lPower) + vec3( lPower ) + vec3( 100. * pow(spec, 20. ));
+    vec3 col = vec3( lDot * lPower) + vec3( lPower ) + vec3( 1. * pow(spec, 100. ));
 
     if( abs(vUV.x - .5) > .49 ||  abs(vUV.y - .5) > .49 ){
       col += vec3(.4);

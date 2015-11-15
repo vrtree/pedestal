@@ -77,6 +77,7 @@ data Shapes u = Shapes
   { _shpPedestal        :: Shape u
   , _shpRoom            :: Shape u
   , _shpLight           :: Shape u
+  , _shpCodeHolder      :: Shape u
   , _shpSculptures      :: [Shape u]
   }
 makeLenses ''Shapes
@@ -132,6 +133,7 @@ data World = World
   , _wldRoom          :: !Room
   , _wldTime          :: !Float
   , _wldLight         :: !(Pose GLfloat)
+  , _wldObjects       :: ![(Pose GLfloat)]
   }
 makeLenses ''World
 
@@ -156,6 +158,7 @@ data Uniforms = Uniforms
   , uLight               :: UniformLocation (V3  GLfloat)
   , uTime                :: UniformLocation GLfloat
   , uDimensions          :: UniformLocation (V3  GLfloat)
+  , uPoints              :: UniformLocation [V3  GLfloat]
   } deriving (Data)
 
 

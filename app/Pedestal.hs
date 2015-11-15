@@ -76,10 +76,12 @@ main = do
                                       { _scpPose  = newPose { _posPosition = V3 0 0 0} 
                                       }
                                 in (i, something)
+        , _wldObjects =  flip map [0..9] $ 
+                            \x -> newPose { _posPosition = V3 (0.3 * (sin x)) ((0.3 * (cos x))+1) (0.3  * (sin (4 * cos x))) }  
         , _wldPlayer  = Pose {_posOrientation = axisAngle (V3 0 1 0) 3.14 , _posPosition = V3 0 0 0}
         , _wldRoom    = Room { _romPose = newPose {_posPosition = V3 0 0 0} }
         , _wldTime    = 0
-        , _wldLight   = newPose {_posPosition = V3 0 (roomHeight) 0}
+        , _wldLight   = newPose {_posPosition = V3 1 2 0}
         }
 
 
@@ -97,6 +99,8 @@ main = do
 
     time <- use wldTime
 
+    objects <- use wldObjects
+
 
     applyMouseLook gpWindow wldPlayer
     applyWASD gpWindow wldPlayer
@@ -107,7 +111,7 @@ main = do
 
     -- controls for debugging 
     shiftDown <- (== KeyState'Pressed) <$> getKey gpWindow Key'LeftShift
-    whenKeyPressed gpWindow Key'Z           $ liftIO $ putStrLn $ "oh" ++ show 5 ++ " yeah"
+    whenKeyPressed gpWindow Key'Z           $ liftIO $ putStrLn $ "oh" ++ show [((objects !! 0) ^. posPosition )] ++ " yeah"
 
     viewMat <- viewMatrixFromPose <$> use wldPlayer
 
@@ -143,13 +147,14 @@ render shapes projection viewMat = do
   time <- use wldTime
 
 
-  let roomShape     = shapes ^. shpRoom
-  let pedestalShape = shapes ^. shpPedestal
-  let lightShape    = shapes ^. shpLight
+  let roomShape          = shapes ^. shpRoom
+  let pedestalShape      = shapes ^. shpPedestal
+  let lightShape         = shapes ^. shpLight
+  let codeHolderShape    = shapes ^. shpCodeHolder
 
   let sculptureShapes    = shapes ^. shpSculptures
 
-
+  objects <- use wldObjects
 
   {-
 
@@ -188,6 +193,11 @@ render shapes projection viewMat = do
     let model = transformationFromPose light 
     drawShape' model projection viewMat lightShape
 
+    forM_ ( zip [0..] ( objects ) ) $ \( i , p ) -> do
+
+      let model = transformationFromPose p
+      drawShape' model projection viewMat lightShape
+
 
 
   {-
@@ -200,13 +210,31 @@ render shapes projection viewMat = do
   useProgram (sProgram pedestalShape)
 
   withVAO (sVAO pedestalShape) $ do
- 
- 
 
     forM_ ( zip [0..] ( Map.toList sculptures ) ) $ \( i , (objID, obj) ) -> do
 
       let model = transformationFromPose $ shiftBy pedestalOffset  (obj ^. scpPose)  
       drawShape' model projection viewMat pedestalShape
+
+
+  {-
+
+    Render the CodeHolders
+
+  -}
+  sculptures <- use wldSculptures
+
+  useProgram (sProgram codeHolderShape)
+
+  withVAO (sVAO codeHolderShape) $ do
+
+    forM_ ( zip [0..] ( Map.toList sculptures ) ) $ \( i , (objID, obj) ) -> do
+
+      let pose = Pose { _posPosition = (obj ^. scpPose . posPosition)  
+                      , _posOrientation = axisAngle (V3 1 0 0 ) 0.4
+                      }
+          model = transformationFromPose $ shiftBy (V3 0 (-0.25) (0.4) ) pose
+      drawShape' model projection viewMat codeHolderShape
 
 
 
@@ -217,6 +245,11 @@ render shapes projection viewMat = do
     Draw them last because they are going to have their backsides shown
 
   -}
+
+  let points = flip map objects $ \i -> (i ^. posPosition)
+
+  --liftIO $ putStrLn $ show (points !! 0)
+  --liftIO $ putStrLn $ show (points !! 1)
 
   glDisable GL_CULL_FACE
   
@@ -230,6 +263,8 @@ render shapes projection viewMat = do
     let Uniforms{..} = sUniforms shape
 
     uniformV3 uDimensions (V3 (sculptureSize) (sculptureSize) (sculptureSize))
+
+    uniformV3V uPoints points
 
     withVAO (sVAO shape) $ do
 
