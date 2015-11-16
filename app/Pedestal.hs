@@ -8,20 +8,11 @@ module Main where
 import Graphics.VR.Pal
 import Graphics.UI.GLFW.Pal
 import Graphics.GL.Pal
-import Graphics.GL
-import Linear
 import Control.Monad.State
-import Control.Lens
-import Data.Data
+import Control.Monad.Reader
+import Control.Lens.Extra
 import Data.Maybe
-import Data.List.Split
-import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import Data.Word
-import Data.Fixed
-import Debug.Trace
-import System.Random
-import Control.Monad.Random
 
 import Halive.Utils
 
@@ -46,12 +37,12 @@ enableDevices = []
 main :: IO ()
 main = do
 
-  gamePal@VRPal{..} <- reacquire 0 $ initVRPal "Gallery" NoGCPerFrame enableDevices
+  vrPal@VRPal{..} <- reacquire 0 $ initVRPal "Gallery" NoGCPerFrame enableDevices
 
 
   {-
 
-    Setting up some gl information
+    Setting up some GL information
 
   -}
   glEnable GL_DEPTH_TEST
@@ -63,10 +54,6 @@ main = do
   {-
 
     Building our default world.
-
-    Because of the "!" s in the type declaration
-    we need to declare all parts of the world, 
-    or it be break in right away
 
   -}
 
@@ -97,8 +84,6 @@ main = do
     delta <- realToFrac <$> liftIO gpGetDelta
     wldTime += delta
 
-    time <- use wldTime
-
     objects <- use wldObjects
 
 
@@ -110,15 +95,14 @@ main = do
 
 
     -- controls for debugging 
-    shiftDown <- (== KeyState'Pressed) <$> getKey gpWindow Key'LeftShift
-    whenKeyPressed gpWindow Key'Z           $ liftIO $ putStrLn $ "oh" ++ show [((objects !! 0) ^. posPosition )] ++ " yeah"
+    whenKeyPressed gpWindow Key'Z $ liftIO $ putStrLn $ "oh" ++ show [((objects !! 0) ^. posPosition )] ++ " yeah"
 
-    viewMat <- viewMatrixFromPose <$> use wldPlayer
+    view44 <- viewMatrixFromPose <$> use wldPlayer
 
 
     -- Once we have set up all the neccesary information,
     -- Render away!
-    renderWith gamePal viewMat 
+    immutably $ renderWith vrPal view44 
       (glClear (GL_COLOR_BUFFER_BIT .|. GL_DEPTH_BUFFER_BIT))
       (render shapes)
 
@@ -137,24 +121,20 @@ main = do
 
 
 
-render :: (MonadIO m, MonadState World m) 
+render :: (MonadIO m, MonadReader World m) 
        => Shapes Uniforms
        -> M44 GLfloat
        -> M44 GLfloat
        -> m ()
-render shapes projection viewMat = do
-
-  time <- use wldTime
-
+render shapes projection44 view44 = do
 
   let roomShape          = shapes ^. shpRoom
-  let pedestalShape      = shapes ^. shpPedestal
-  let lightShape         = shapes ^. shpLight
-  let codeHolderShape    = shapes ^. shpCodeHolder
+      pedestalShape      = shapes ^. shpPedestal
+      lightShape         = shapes ^. shpLight
+      codeHolderShape    = shapes ^. shpCodeHolder
+      sculptureShapes    = shapes ^. shpSculptures
 
-  let sculptureShapes    = shapes ^. shpSculptures
-
-  objects <- use wldObjects
+  objects <- view wldObjects
 
   {-
 
@@ -165,15 +145,14 @@ render shapes projection viewMat = do
   glEnable GL_CULL_FACE
   glCullFace GL_FRONT
 
-  room <- use wldRoom
+  room <- view wldRoom
 
   useProgram (sProgram roomShape)
 
   withVAO (sVAO roomShape) $ do
 
-
-    let model = transformationFromPose $ shiftBy roomOffset (room ^. romPose)  
-    drawShape' model projection viewMat roomShape
+    let model44 = transformationFromPose $ shiftBy roomOffset (room ^. romPose)  
+    drawShape' model44 projection44 view44 roomShape
 
 
   {-
@@ -184,19 +163,19 @@ render shapes projection viewMat = do
 
   glCullFace GL_BACK
 
-  light <- use wldLight
+  light <- view wldLight
 
   useProgram (sProgram lightShape)
 
   withVAO (sVAO lightShape) $ do
 
-    let model = transformationFromPose light 
-    drawShape' model projection viewMat lightShape
+    let model44 = transformationFromPose light 
+    drawShape' model44 projection44 view44 lightShape
 
-    forM_ ( zip [0..] ( objects ) ) $ \( i , p ) -> do
+    forM_ objects $ \p -> do
 
-      let model = transformationFromPose p
-      drawShape' model projection viewMat lightShape
+      let model44' = transformationFromPose p
+      drawShape' model44' projection44 view44 lightShape
 
 
 
@@ -205,16 +184,16 @@ render shapes projection viewMat = do
     Render the Pedestals
 
   -}
-  sculptures <- use wldSculptures
+  sculptures <- view wldSculptures
 
   useProgram (sProgram pedestalShape)
 
   withVAO (sVAO pedestalShape) $ do
 
-    forM_ ( zip [0..] ( Map.toList sculptures ) ) $ \( i , (objID, obj) ) -> do
+    forM_ sculptures $ \obj -> do
 
-      let model = transformationFromPose $ shiftBy pedestalOffset  (obj ^. scpPose)  
-      drawShape' model projection viewMat pedestalShape
+      let model44 = transformationFromPose $ shiftBy pedestalOffset  (obj ^. scpPose)  
+      drawShape' model44 projection44 view44 pedestalShape
 
 
   {-
@@ -222,19 +201,18 @@ render shapes projection viewMat = do
     Render the CodeHolders
 
   -}
-  sculptures <- use wldSculptures
 
   useProgram (sProgram codeHolderShape)
 
   withVAO (sVAO codeHolderShape) $ do
 
-    forM_ ( zip [0..] ( Map.toList sculptures ) ) $ \( i , (objID, obj) ) -> do
+    forM_ sculptures $ \obj -> do
 
       let pose = Pose { _posPosition = (obj ^. scpPose . posPosition)  
                       , _posOrientation = axisAngle (V3 1 0 0 ) 0.4
                       }
-          model = transformationFromPose $ shiftBy (V3 0 (-0.25) (0.4) ) pose
-      drawShape' model projection viewMat codeHolderShape
+          model44 = transformationFromPose $ shiftBy (V3 0 (-0.25) (0.4) ) pose
+      drawShape' model44 projection44 view44 codeHolderShape
 
 
 
@@ -253,9 +231,7 @@ render shapes projection viewMat = do
 
   glDisable GL_CULL_FACE
   
-  sculptures <- use wldSculptures
-
-  forM_ ( zip [0..] ( Map.toList sculptures ) ) $ \( i , (objID, obj) ) -> do
+  forM_ (zip [0..] (Map.elems sculptures)) $ \(i , obj) -> do
 
     let shape = (sculptureShapes !! i)
     useProgram (sProgram shape)
@@ -268,8 +244,8 @@ render shapes projection viewMat = do
 
     withVAO (sVAO shape) $ do
 
-      let model = transformationFromPose $ shiftBy sculptureOffset (obj ^. scpPose)  
-      drawShape' model projection viewMat shape
+      let model44 = transformationFromPose $ shiftBy sculptureOffset (obj ^. scpPose)  
+      drawShape' model44 projection44 view44 shape
 
 
 
@@ -280,28 +256,26 @@ render shapes projection viewMat = do
 
   Helper functions for drawing
 
-
 -}
 
-drawShape' ::(MonadIO m, MonadState World m) => M44 GLfloat -> M44 GLfloat -> M44 GLfloat ->  Shape Uniforms -> m ()
-drawShape' model projection view shape = do 
+drawShape' ::(MonadIO m, MonadReader World m) => M44 GLfloat -> M44 GLfloat -> M44 GLfloat -> Shape Uniforms -> m ()
+drawShape' model44 projection44 view44 shape = do 
 
   let Uniforms{..} = sUniforms shape
 
-  light <- use wldLight
-  time  <- use wldTime
-
+  light <- view wldLight
+  time  <- view wldTime
 
   -- Recalculating for each object. doesn't make sense!
-  uniformV3 uEye (fromMaybe view (inv44 view) ^. translation)
-  uniformV3 uLight ((light ^. posPosition)- (V3 0 0.3 0))
+  uniformV3 uEye (fromMaybe view44 (inv44 view44) ^. translation)
+  uniformV3 uLight (light ^. posPosition - V3 0 0.3 0)
   uniformF  uTime time
 
-  uniformM44 uViewProjection      (projection !*! view)
-  uniformM44 uModelViewProjection (projection !*! view !*! model)
-  uniformM44 uInverseModel        (fromMaybe model (inv44 model))
-  uniformM44 uModel               model
-  uniformM44 uNormalMatrix        (transpose . safeInv44 $ view !*! model )
+  uniformM44 uViewProjection      (projection44 !*! view44)
+  uniformM44 uModelViewProjection (projection44 !*! view44 !*! model44)
+  uniformM44 uInverseModel        (fromMaybe model44 (inv44 model44))
+  uniformM44 uModel               model44
+  uniformM44 uNormalMatrix        (transpose . safeInv44 $ view44 !*! model44 )
 
   let vc = geoVertCount (sGeometry shape)
   glDrawElements GL_TRIANGLES vc GL_UNSIGNED_INT nullPtr

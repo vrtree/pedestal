@@ -5,25 +5,7 @@
 
 module Shapes where
 
-import Graphics.VR.Pal
-import Graphics.UI.GLFW.Pal
 import Graphics.GL.Pal
-import Graphics.GL
-import Linear
-import Control.Monad.State
-import Control.Lens
-import Data.Data
-import Data.Maybe
-import Data.List.Split
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-import Data.Word
-import Data.Fixed
-import Debug.Trace
-import System.Random
-import Control.Monad.Random
-
-import Halive.Utils  
 
 import Types
 
@@ -37,11 +19,11 @@ galleryShapes = do
 
   -}
   roomProg       <- createShaderProgram "app/shaders/world/room.vert" "app/shaders/world/room.frag"
-  roomGeo        <- cubeGeometry (V3 roomWidth roomHeight roomDepth) (V3 1 1 1 )
+  roomGeo        <- cubeGeometry (V3 roomWidth roomHeight roomDepth) (V3 1 1 1)
   roomShape      <- makeShape roomGeo roomProg
 
   pedestalProg   <- createShaderProgram "app/shaders/world/pedestal.vert" "app/shaders/world/pedestal.frag"
-  pedestalGeo    <- cubeGeometry ((V3 sculptureSize pedestalHeight sculptureSize)) (V3 1 1 1 )
+  pedestalGeo    <- cubeGeometry ((V3 sculptureSize pedestalHeight sculptureSize)) (V3 1 1 1)
   pedestalShape  <- makeShape pedestalGeo pedestalProg
 
   codeHolderProg   <- createShaderProgram "app/shaders/world/pedestal.vert" "app/shaders/world/pedestal.frag"
@@ -59,14 +41,14 @@ galleryShapes = do
 
   sDefault          <- createShaderProgram vs "app/shaders/sculptures/default.frag"
 
-  sPit              <- createShaderProgram vs "app/shaders/sculptures/pit.frag"
-  sNoiseStep        <- createShaderProgram vs "app/shaders/sculptures/noiseStep.frag"
-  sWeirdHoles1      <- createShaderProgram vs "app/shaders/sculptures/weirdHoles1.frag"
-  sFieldSub         <- createShaderProgram vs "app/shaders/sculptures/fieldSub.frag"
-  sBubbles          <- createShaderProgram vs "app/shaders/sculptures/bubbles.frag"
-  sCubeSubField     <- createShaderProgram vs "app/shaders/sculptures/cubeSubField.frag"
-  sTessel           <- createShaderProgram vs "app/shaders/sculptures/tessel.frag"
-  sTesselSphere     <- createShaderProgram vs "app/shaders/sculptures/tesselSphere.frag"
+  -- sPit              <- createShaderProgram vs "app/shaders/sculptures/pit.frag"
+  -- sNoiseStep        <- createShaderProgram vs "app/shaders/sculptures/noiseStep.frag"
+  -- sWeirdHoles1      <- createShaderProgram vs "app/shaders/sculptures/weirdHoles1.frag"
+  -- sFieldSub         <- createShaderProgram vs "app/shaders/sculptures/fieldSub.frag"
+  -- sBubbles          <- createShaderProgram vs "app/shaders/sculptures/bubbles.frag"
+  -- sCubeSubField     <- createShaderProgram vs "app/shaders/sculptures/cubeSubField.frag"
+  -- sTessel           <- createShaderProgram vs "app/shaders/sculptures/tessel.frag"
+  -- sTesselSphere     <- createShaderProgram vs "app/shaders/sculptures/tesselSphere.frag"
 
 
   s1  <- makeShape sculptureGeo sDefault

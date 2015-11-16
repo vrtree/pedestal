@@ -5,25 +5,10 @@
 
 module Types where
 
-import Graphics.VR.Pal
-import Graphics.UI.GLFW.Pal
 import Graphics.GL.Pal
-import Graphics.GL
-import Linear
-import Control.Monad.State
-import Control.Lens
-import Data.Data
-import Data.Maybe
-import Data.List.Split
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-import Data.Word
-import Data.Fixed
-import Debug.Trace
-import System.Random
-import Control.Monad.Random
 
-import Halive.Utils
+import Control.Lens
+import Data.Map.Strict (Map)
 
 
 roomHeight :: GLfloat
