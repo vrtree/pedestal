@@ -13,14 +13,11 @@ build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
 
-Flag UseOculusSDK
-  Description: Enable direct Oculus SDK support (rather than via SteamVR)
-  Default:     False
-
-
 executable pedestal
   hs-source-dirs:      app
   main-is:             Pedestal.hs
+  other-modules:       Shapes
+                     , Types
   ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , vr-pal

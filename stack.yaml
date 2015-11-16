@@ -10,4 +10,6 @@ packages:
 - '../linear-extra'
 - '../lens-extra'
 - '../openvr-hs'
+- '../freetype-gl-mini'
+- '../tinyrick'
 resolver: nightly-2015-11-03
