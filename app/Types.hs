@@ -45,6 +45,30 @@ sculptureOffset = V3 0 sculptureHeight 0
 roomOffset :: V3 GLfloat
 roomOffset = V3 0 (roomHeight/2) 0
 
+{-
+
+  Uniforms:
+
+  A Big list of uniforms we use across our programs
+  
+
+-}
+
+data Uniforms = Uniforms
+  { uModelViewProjection :: UniformLocation (M44 GLfloat)
+  , uViewProjection      :: UniformLocation (M44 GLfloat)
+  , uNormalMatrix        :: UniformLocation (M44 GLfloat)
+  , uInverseModel        :: UniformLocation (M44 GLfloat)
+  , uModel               :: UniformLocation (M44 GLfloat)
+  , uEye                 :: UniformLocation (V3  GLfloat)
+  , uHand1               :: UniformLocation (V3  GLfloat)
+  , uHand2               :: UniformLocation (V3  GLfloat)
+  , uLight               :: UniformLocation (V3  GLfloat)
+  , uTime                :: UniformLocation GLfloat
+  , uDimensions          :: UniformLocation (V3  GLfloat)
+  , uPoints              :: UniformLocation [V3  GLfloat]
+  } deriving (Data)
+
 
 
 {-
@@ -52,7 +76,7 @@ roomOffset = V3 0 (roomHeight/2) 0
   Shapes:
 
   Keeping all the different shapes
-  in a single lense, so we can pass them
+  in a single structure, so we can pass them
   to the render function as a package,
   instead of one by one
 
@@ -63,7 +87,6 @@ data Shapes u = Shapes
   , _shpRoom            :: Shape u
   , _shpLight           :: Shape u
   , _shpCodeHolder      :: Shape u
-  , _shpSculptures      :: [Shape u]
   }
 makeLenses ''Shapes
 
@@ -79,7 +102,8 @@ makeLenses ''Shapes
 -}
 
 data Sculpture = Sculpture
-  { _scpPose :: !(Pose GLfloat)
+  { _scpPose     :: !(Pose GLfloat)
+  , _scpGetShape :: !(IO (Shape Uniforms, String))
   --, _scpProgram :: !Program
   }
 makeLenses ''Sculpture
@@ -121,29 +145,5 @@ data World = World
   , _wldObjects       :: ![(Pose GLfloat)]
   }
 makeLenses ''World
-
-{-
-
-  Uniforms:
-
-  A Big list of uniforms we use across our programs
-  
-
--}
-
-data Uniforms = Uniforms
-  { uModelViewProjection :: UniformLocation (M44 GLfloat)
-  , uViewProjection      :: UniformLocation (M44 GLfloat)
-  , uNormalMatrix        :: UniformLocation (M44 GLfloat)
-  , uInverseModel        :: UniformLocation (M44 GLfloat)
-  , uModel               :: UniformLocation (M44 GLfloat)
-  , uEye                 :: UniformLocation (V3  GLfloat)
-  , uHand1               :: UniformLocation (V3  GLfloat)
-  , uHand2               :: UniformLocation (V3  GLfloat)
-  , uLight               :: UniformLocation (V3  GLfloat)
-  , uTime                :: UniformLocation GLfloat
-  , uDimensions          :: UniformLocation (V3  GLfloat)
-  , uPoints              :: UniformLocation [V3  GLfloat]
-  } deriving (Data)
 
 

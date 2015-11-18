@@ -18,46 +18,29 @@ galleryShapes = do
     objects
 
   -}
-  roomProg       <- createShaderProgram "app/shaders/world/room.vert" "app/shaders/world/room.frag"
-  roomGeo        <- cubeGeometry (V3 roomWidth roomHeight roomDepth) (V3 1 1 1)
-  roomShape      <- makeShape roomGeo roomProg
+  roomProg         <- createShaderProgram "app/shaders/world/room.vert" "app/shaders/world/room.frag"
+  roomGeo          <- cubeGeometry (V3 roomWidth roomHeight roomDepth) (V3 1 1 1)
+  roomShape        <- makeShape roomGeo roomProg
 
-  pedestalProg   <- createShaderProgram "app/shaders/world/pedestal.vert" "app/shaders/world/pedestal.frag"
-  pedestalGeo    <- cubeGeometry ((V3 sculptureSize pedestalHeight sculptureSize)) (V3 1 1 1)
-  pedestalShape  <- makeShape pedestalGeo pedestalProg
+  pedestalProg     <- createShaderProgram "app/shaders/world/pedestal.vert" "app/shaders/world/pedestal.frag"
+  pedestalGeo      <- cubeGeometry ((V3 sculptureSize pedestalHeight sculptureSize)) (V3 1 1 1)
+  pedestalShape    <- makeShape pedestalGeo pedestalProg
 
   codeHolderProg   <- createShaderProgram "app/shaders/world/pedestal.vert" "app/shaders/world/pedestal.frag"
   codeHolderGeo    <- cubeGeometry ((V3 (sculptureSize - 0.1) (3 * pedestalHeight) (sculptureSize- 0.1))) (V3 1 1 1)
   codeHolderShape  <- makeShape codeHolderGeo codeHolderProg
 
-  lightProg   <- createShaderProgram "app/shaders/world/light.vert" "app/shaders/world/light.frag"
-  lightGeo    <- icosahedronGeometry 0.02 4
-  lightShape  <- makeShape lightGeo lightProg
-
-  sculptureGeo   <- cubeGeometry ((V3 sculptureSize sculptureSize sculptureSize)) (V3 1 1 1)
-
-  let vs = "app/shaders/raytrace.vert"
+  lightProg        <- createShaderProgram "app/shaders/world/light.vert" "app/shaders/world/light.frag"
+  lightGeo         <- icosahedronGeometry 0.02 4
+  lightShape       <- makeShape lightGeo lightProg
 
 
-  sDefault          <- createShaderProgram vs "app/shaders/sculptures/default.frag"
-
-  -- sPit              <- createShaderProgram vs "app/shaders/sculptures/pit.frag"
-  -- sNoiseStep        <- createShaderProgram vs "app/shaders/sculptures/noiseStep.frag"
-  -- sWeirdHoles1      <- createShaderProgram vs "app/shaders/sculptures/weirdHoles1.frag"
-  -- sFieldSub         <- createShaderProgram vs "app/shaders/sculptures/fieldSub.frag"
-  -- sBubbles          <- createShaderProgram vs "app/shaders/sculptures/bubbles.frag"
-  -- sCubeSubField     <- createShaderProgram vs "app/shaders/sculptures/cubeSubField.frag"
-  -- sTessel           <- createShaderProgram vs "app/shaders/sculptures/tessel.frag"
-  -- sTesselSphere     <- createShaderProgram vs "app/shaders/sculptures/tesselSphere.frag"
-
-
-  s1  <- makeShape sculptureGeo sDefault
-
-  let shapes = Shapes{ _shpRoom        = roomShape
-                     , _shpLight       = lightShape
-                     , _shpPedestal    = pedestalShape
-                     , _shpCodeHolder  = codeHolderShape
-                     , _shpSculptures  = [s1]
-                     }
+  let shapes = Shapes { _shpRoom        = roomShape
+                      , _shpLight       = lightShape
+                      , _shpPedestal    = pedestalShape
+                      , _shpCodeHolder  = codeHolderShape
+                      }
 
   return shapes
+
+

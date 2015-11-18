@@ -9,7 +9,8 @@ packages:
 - '../linear-extra'
 - '../lens-extra'
 - '../openvr-hs'
-- '../bindings-GLFW-3.1.1.4'
 - '../freetype-gl-mini'
 - '../tinyrick'
+# Temp fix for a bug in GHC 7.10.3 (see https://ghc.haskell.org/trac/ghc/ticket/10726#comment:40)
+- '../bindings-GLFW-3.1.1.4'
 resolver: nightly-2015-11-03

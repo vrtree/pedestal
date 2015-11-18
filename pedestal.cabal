@@ -19,6 +19,9 @@ executable pedestal
   other-modules:       Shapes
                      , Types
   ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
+  -- Disable the console on Windows
+  if os(windows)
+    ghc-options:       -optl-mwindows
   build-depends:       base
                      , vr-pal
                      , glfw-pal
@@ -36,6 +39,8 @@ executable pedestal
                      , lens
                      , linear
                      , split
+                     , tinyrick
+                     , freetype-gl-mini
 
   default-language:    Haskell2010
 

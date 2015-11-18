@@ -14,6 +14,9 @@ import Control.Lens.Extra
 import Data.Maybe
 import qualified Data.Map.Strict as Map
 
+import Graphics.GL.Freetype
+import TinyRick
+
 import Halive.Utils
 
 import Types
@@ -30,16 +33,58 @@ import Shapes
 -}
 
 enableDevices :: [VRPalDevices]
--- enableDevices = [UseOpenVR]
--- enableDevices = [UseOpenVR, UseHydra]
-enableDevices = []
+enableDevices = [UseOpenVR]
+-- enableDevices = []
+
+buildSculptures = do
+  sculptureGeo <- cubeGeometry (V3 sculptureSize sculptureSize sculptureSize) (V3 1 1 1)
+
+  let sculptureShaders = [ "default"
+                         -- , "pit"
+                         -- , "noiseStep"
+                         -- , "weirdHoles1"
+                         -- , "fieldSub"
+                         -- , "bubbles"
+                         -- , "cubeSubField"
+                         -- , "tessel"
+                         -- , "tesselSphere"
+                         ]
+  fmap Map.fromList $ forM (zip [0..] sculptureShaders) $ \(i, shaderName) -> do
+    let shaderPath = "app/shaders/sculptures/" ++ shaderName ++ ".frag"
+    shaderComp <- shaderRecompiler "app/shaders/raytrace.vert" shaderPath (makeShape sculptureGeo)
+    
+    let sculpture = Sculpture
+                  { _scpPose     = newPose { _posPosition = V3 0 0 0}
+                  , _scpGetShape = shaderComp 
+                  }
+
+    return (i, sculpture)
+
+newWorld = do
+  sculptures <- buildSculptures
+  return World 
+        { _wldSculptures = sculptures
+        , _wldObjects =  flip map [0..9] $ 
+                            \x -> newPose { 
+                              _posPosition = V3 (0.3 * sin x) 
+                                                (0.3 * cos x + 1) 
+                                                (0.3 * sin (4 * cos x))
+                              }  
+        , _wldPlayer  = newPose { _posOrientation = axisAngle (V3 0 1 0) 3.14 }
+        , _wldRoom    = Room { _romPose = newPose }
+        , _wldTime    = 0
+        , _wldLight   = newPose {_posPosition = V3 1 2 0}
+        }
 
 main :: IO ()
 main = do
 
-  vrPal@VRPal{..} <- reacquire 0 $ initVRPal "Gallery" NoGCPerFrame enableDevices
+  vrPal@VRPal{..} <- reacquire 0 $ initVRPal "Pedestal" GCPerFrame enableDevices
+  
+  glyphProg <- createShaderProgram "app/shaders/glyph.vert" "app/shaders/glyph.frag"
+  font      <- createFont "app/fonts/SourceCodePro-Regular.ttf" 30 glyphProg
 
-
+  sculptures <- buildSculptures
   {-
 
     Setting up some GL information
@@ -57,20 +102,7 @@ main = do
 
   -}
 
-  world <- reacquire 1 $ return World 
-        { _wldSculptures = Map.fromList $ flip map [0] $ 
-                          \i -> let something = Sculpture
-                                      { _scpPose  = newPose { _posPosition = V3 0 0 0} 
-                                      }
-                                in (i, something)
-        , _wldObjects =  flip map [0..9] $ 
-                            \x -> newPose { _posPosition = V3 (0.3 * (sin x)) ((0.3 * (cos x))+1) (0.3  * (sin (4 * cos x))) }  
-        , _wldPlayer  = Pose {_posOrientation = axisAngle (V3 0 1 0) 3.14 , _posPosition = V3 0 0 0}
-        , _wldRoom    = Room { _romPose = newPose {_posPosition = V3 0 0 0} }
-        , _wldTime    = 0
-        , _wldLight   = newPose {_posPosition = V3 1 2 0}
-        }
-
+  world <- reacquire 1 newWorld
 
   {-
 
@@ -89,10 +121,10 @@ main = do
 
     applyMouseLook gpWindow wldPlayer
     applyWASD gpWindow wldPlayer
+
     processEvents gpEvents $ \e -> do
       closeOnEscape gpWindow e
       applyGamepadJoystickMovement e wldPlayer
-
 
     -- controls for debugging 
     whenKeyPressed gpWindow Key'Z $ liftIO $ putStrLn $ "oh" ++ show [((objects !! 0) ^. posPosition )] ++ " yeah"
@@ -132,7 +164,6 @@ render shapes projection44 view44 = do
       pedestalShape      = shapes ^. shpPedestal
       lightShape         = shapes ^. shpLight
       codeHolderShape    = shapes ^. shpCodeHolder
-      sculptureShapes    = shapes ^. shpSculptures
 
   objects <- view wldObjects
 
@@ -192,7 +223,7 @@ render shapes projection44 view44 = do
 
     forM_ sculptures $ \obj -> do
 
-      let model44 = transformationFromPose $ shiftBy pedestalOffset  (obj ^. scpPose)  
+      let model44 = transformationFromPose $ shiftBy pedestalOffset (obj ^. scpPose)  
       drawShape' model44 projection44 view44 pedestalShape
 
 
@@ -209,9 +240,9 @@ render shapes projection44 view44 = do
     forM_ sculptures $ \obj -> do
 
       let pose = Pose { _posPosition = (obj ^. scpPose . posPosition)  
-                      , _posOrientation = axisAngle (V3 1 0 0 ) 0.4
+                      , _posOrientation = axisAngle (V3 1 0 0) 0.4
                       }
-          model44 = transformationFromPose $ shiftBy (V3 0 (-0.25) (0.4) ) pose
+          model44 = transformationFromPose $ shiftBy (V3 0 (-0.25) (0.4)) pose
       drawShape' model44 projection44 view44 codeHolderShape
 
 
@@ -224,16 +255,17 @@ render shapes projection44 view44 = do
 
   -}
 
-  let points = flip map objects $ \i -> (i ^. posPosition)
+  -- FIXME this needs to be synced with raytrace.frag NUM_POINTS
+  let points = take 4 $ flip map objects $ \i -> (i ^. posPosition)
 
   --liftIO $ putStrLn $ show (points !! 0)
   --liftIO $ putStrLn $ show (points !! 1)
 
   glDisable GL_CULL_FACE
   
-  forM_ (zip [0..] (Map.elems sculptures)) $ \(i , obj) -> do
+  forM_ sculptures $ \obj -> do
 
-    let shape = (sculptureShapes !! i)
+    (shape, anyError) <- liftIO $ obj ^. scpGetShape
     useProgram (sProgram shape)
 
     let Uniforms{..} = sUniforms shape
