@@ -6,10 +6,11 @@
 module Types where
 
 import Graphics.GL.Pal
+import Graphics.GL.Freetype
 
 import Control.Lens
 import Data.Map.Strict (Map)
-
+import TinyRick
 
 roomHeight :: GLfloat
 roomHeight = 10
@@ -104,7 +105,9 @@ makeLenses ''Shapes
 data Sculpture = Sculpture
   { _scpPose     :: !(Pose GLfloat)
   , _scpGetShape :: !(IO (Shape Uniforms, String))
-  --, _scpProgram :: !Program
+  , _scpBuffer   :: !Buffer
+  , _scpScroll   :: !GLfloat
+  , _scpFont     :: !Font
   }
 makeLenses ''Sculpture
 
@@ -135,14 +138,16 @@ makeLenses ''Room
 
 -}
 
+type SculptureID = Int
 
 data World = World
-  { _wldSculptures    :: !(Map Int Sculpture)
-  , _wldPlayer        :: !(Pose GLfloat)
-  , _wldRoom          :: !Room
-  , _wldTime          :: !Float
-  , _wldLight         :: !(Pose GLfloat)
-  , _wldObjects       :: ![(Pose GLfloat)]
+  { _wldSculptures         :: !(Map SculptureID Sculpture)
+  , _wldPlayer             :: !(Pose GLfloat)
+  , _wldRoom               :: !Room
+  , _wldTime               :: !Float
+  , _wldLight              :: !(Pose GLfloat)
+  , _wldObjects            :: ![(Pose GLfloat)]
+  , _wldFocusedSculptureID :: !SculptureID
   }
 makeLenses ''World
 

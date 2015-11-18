@@ -20,8 +20,8 @@ executable pedestal
                      , Types
   ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
   -- Disable the console on Windows
-  if os(windows)
-    ghc-options:       -optl-mwindows
+--  if os(windows)
+--    ghc-options:       -optl-mwindows
   build-depends:       base
                      , vr-pal
                      , glfw-pal

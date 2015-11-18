@@ -36,7 +36,7 @@ enableDevices :: [VRPalDevices]
 enableDevices = [UseOpenVR]
 -- enableDevices = []
 
-buildSculptures = do
+buildSculptures font = do
   sculptureGeo <- cubeGeometry (V3 sculptureSize sculptureSize sculptureSize) (V3 1 1 1)
 
   let sculptureShaders = [ "default"
@@ -53,17 +53,22 @@ buildSculptures = do
     let shaderPath = "app/shaders/sculptures/" ++ shaderName ++ ".frag"
     shaderComp <- shaderRecompiler "app/shaders/raytrace.vert" shaderPath (makeShape sculptureGeo)
     
+    buffer <- bufferFromFile shaderPath
     let sculpture = Sculpture
                   { _scpPose     = newPose { _posPosition = V3 0 0 0}
                   , _scpGetShape = shaderComp 
+                  , _scpBuffer   = buffer
+                  , _scpFont     = font
+                  , _scpScroll   = 0
                   }
 
     return (i, sculpture)
 
-newWorld = do
-  sculptures <- buildSculptures
+newWorld font = do
+  sculptures <- buildSculptures font
   return World 
         { _wldSculptures = sculptures
+        , _wldFocusedSculptureID = 0
         , _wldObjects =  flip map [0..9] $ 
                             \x -> newPose { 
                               _posPosition = V3 (0.3 * sin x) 
@@ -73,7 +78,7 @@ newWorld = do
         , _wldPlayer  = newPose { _posOrientation = axisAngle (V3 0 1 0) 3.14 }
         , _wldRoom    = Room { _romPose = newPose }
         , _wldTime    = 0
-        , _wldLight   = newPose {_posPosition = V3 1 2 0}
+        , _wldLight   = newPose { _posPosition = V3 1 2 0 }
         }
 
 main :: IO ()
@@ -82,9 +87,8 @@ main = do
   vrPal@VRPal{..} <- reacquire 0 $ initVRPal "Pedestal" GCPerFrame enableDevices
   
   glyphProg <- createShaderProgram "app/shaders/glyph.vert" "app/shaders/glyph.frag"
-  font      <- createFont "app/fonts/SourceCodePro-Regular.ttf" 30 glyphProg
+  font      <- createFont "app/fonts/SourceCodePro-Regular.ttf" 50 glyphProg
 
-  sculptures <- buildSculptures
   {-
 
     Setting up some GL information
@@ -93,6 +97,7 @@ main = do
   glEnable GL_DEPTH_TEST
   glClearColor 0 0 0.1 1
   glEnable GL_CULL_FACE
+  glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
 
   shapes <- galleryShapes
 
@@ -102,7 +107,7 @@ main = do
 
   -}
 
-  world <- reacquire 1 newWorld
+  world <- reacquire 1 (newWorld font)
 
   {-
 
@@ -119,12 +124,29 @@ main = do
     objects <- use wldObjects
 
 
-    applyMouseLook gpWindow wldPlayer
-    applyWASD gpWindow wldPlayer
+    -- applyMouseLook gpWindow wldPlayer
+    -- applyWASD gpWindow wldPlayer
 
+    focusedSculptureID <- use wldFocusedSculptureID 
     processEvents gpEvents $ \e -> do
       closeOnEscape gpWindow e
-      applyGamepadJoystickMovement e wldPlayer
+      -- applyGamepadJoystickMovement e wldPlayer
+
+      -- Scroll the active rick
+      onScroll e $ \_ scrollY -> do
+        wldSculptures . ix focusedSculptureID . scpScroll %= \s ->
+          min 100 (max (-1000) (s + scrollY))
+
+      -- Pass events to the active sculpture
+      handleBufferEvent gpWindow e (wldSculptures . ix focusedSculptureID . scpBuffer)
+
+      -- Continuously save the file
+      let save = do
+            persistState 1
+            maybe (return ()) saveBuffer =<< preuse (wldSculptures . ix focusedSculptureID . scpBuffer)
+      onChar e $         \_ -> save
+      onKey  e Key'Enter     $ save
+      onKey  e Key'Backspace $ save
 
     -- controls for debugging 
     whenKeyPressed gpWindow Key'Z $ liftIO $ putStrLn $ "oh" ++ show [((objects !! 0) ^. posPosition )] ++ " yeah"
@@ -244,9 +266,23 @@ render shapes projection44 view44 = do
                       }
           model44 = transformationFromPose $ shiftBy (V3 0 (-0.25) (0.4)) pose
       drawShape' model44 projection44 view44 codeHolderShape
-
-
-
+  -- And their code
+  -- glDisable GL_DEPTH_TEST
+  glDisable GL_CULL_FACE
+  glEnable  GL_BLEND
+  forM_ sculptures $ \obj -> do
+    let buffer = obj ^. scpBuffer
+        font   = obj ^. scpFont
+        pose   = id
+               . rotateBy (axisAngle (V3 1 0 0) (-pi/4 - 0.4))
+               . shiftBy (V3 (-0.15) (0.65) 0.4)
+               $ newPose { _posPosition = obj ^. scpPose . posPosition }
+        model44 = transformationFromPose pose
+        mvp = projection44 !*! view44 !*! model44 !*! scaleMatrix 0.0002
+    renderText font (bufText buffer) (bufSelection buffer) mvp
+  -- glEnable GL_DEPTH_TEST
+  glEnable  GL_CULL_FACE
+  glDisable GL_BLEND
   {-
 
     Render the Sculptures
@@ -272,7 +308,7 @@ render shapes projection44 view44 = do
 
     uniformV3 uDimensions (V3 (sculptureSize) (sculptureSize) (sculptureSize))
 
-    uniformV3V uPoints points
+    -- uniformV3V uPoints points
 
     withVAO (sVAO shape) $ do
 

@@ -57,7 +57,7 @@ vec2 map( vec3 pos ){
   for( int i = 0; i < NUM_POINTS; i++ ){
 
     vec2 sphere = vec2( sdSphere( pos - vPoints[i] , .1 ), float(i) + 1. );
-    res = smoothU( res , sphere ,.04 );
+    res = smoothU( res , sphere ,.08 );
 
   }
 
