@@ -10,7 +10,6 @@ import Graphics.GL.Freetype
 
 import Control.Lens
 import Data.Map.Strict (Map)
-import TinyRick
 
 roomHeight :: GLfloat
 roomHeight = 10
@@ -105,9 +104,8 @@ makeLenses ''Shapes
 data Sculpture = Sculpture
   { _scpPose     :: !(Pose GLfloat)
   , _scpGetShape :: !(IO (Shape Uniforms, String))
-  , _scpBuffer   :: !Buffer
+  , _scpBuffer   :: !TextBuffer
   , _scpScroll   :: !GLfloat
-  , _scpFont     :: !Font
   }
 makeLenses ''Sculpture
 

@@ -53,12 +53,11 @@ buildSculptures font = do
     let shaderPath = "app/shaders/sculptures/" ++ shaderName ++ ".frag"
     shaderComp <- shaderRecompiler "app/shaders/raytrace.vert" shaderPath (makeShape sculptureGeo)
     
-    buffer <- bufferFromFile shaderPath
+    buffer <- bufferFromFile font shaderPath
     let sculpture = Sculpture
                   { _scpPose     = newPose { _posPosition = V3 0 0 0}
                   , _scpGetShape = shaderComp 
                   , _scpBuffer   = buffer
-                  , _scpFont     = font
                   , _scpScroll   = 0
                   }
 
@@ -138,15 +137,22 @@ main = do
           min 100 (max (-1000) (s + scrollY))
 
       -- Pass events to the active sculpture
-      handleBufferEvent gpWindow e (wldSculptures . ix focusedSculptureID . scpBuffer)
+      handleTextBufferEvent gpWindow e (wldSculptures . ix focusedSculptureID . scpBuffer)
 
       -- Continuously save the file
       let save = do
             persistState 1
-            maybe (return ()) saveBuffer =<< preuse (wldSculptures . ix focusedSculptureID . scpBuffer)
+            maybeBuffer <- preuse (wldSculptures . ix focusedSculptureID . scpBuffer)
+            forM_ maybeBuffer $ \buffer -> do 
+              updateIndicesAndOffsets buffer
+              saveTextBuffer          buffer
       onChar e $         \_ -> save
       onKey  e Key'Enter     $ save
       onKey  e Key'Backspace $ save
+      onKey  e Key'Up        $ save
+      onKey  e Key'Down      $ save
+      onKey  e Key'Left      $ save
+      onKey  e Key'Right     $ save
 
     -- controls for debugging 
     whenKeyPressed gpWindow Key'Z $ liftIO $ putStrLn $ "oh" ++ show [((objects !! 0) ^. posPosition )] ++ " yeah"
@@ -272,7 +278,7 @@ render shapes projection44 view44 = do
   glEnable  GL_BLEND
   forM_ sculptures $ \obj -> do
     let buffer = obj ^. scpBuffer
-        font   = obj ^. scpFont
+        font   = bufFont buffer
         pose   = id
                . rotateBy (axisAngle (V3 1 0 0) (-pi/4 - 0.4))
                . shiftBy (V3 (-0.15) (0.65) 0.4)
