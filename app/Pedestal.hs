@@ -308,7 +308,7 @@ render shapes projection44 view44 = do
 
     uniformV3 uDimensions (V3 (sculptureSize) (sculptureSize) (sculptureSize))
 
-    -- uniformV3V uPoints points
+    uniformV3V uPoints points
 
     withVAO (sVAO shape) $ do
 
