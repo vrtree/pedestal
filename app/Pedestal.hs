@@ -36,6 +36,7 @@ enableDevices :: [VRPalDevices]
 enableDevices = [UseOpenVR]
 -- enableDevices = []
 
+buildSculptures :: (Enum k, Num k, Ord k) => Font -> IO (Map.Map k Sculpture)
 buildSculptures font = do
   sculptureGeo <- cubeGeometry (V3 sculptureSize sculptureSize sculptureSize) (V3 1 1 1)
 
@@ -54,6 +55,7 @@ buildSculptures font = do
     shaderComp <- shaderRecompiler "app/shaders/raytrace.vert" shaderPath (makeShape sculptureGeo)
     
     buffer <- bufferFromFile font shaderPath
+    updateIndicesAndOffsets buffer
     let sculpture = Sculpture
                   { _scpPose     = newPose { _posPosition = V3 0 0 0}
                   , _scpGetShape = shaderComp 
@@ -63,6 +65,7 @@ buildSculptures font = do
 
     return (i, sculpture)
 
+newWorld :: Font -> IO World
 newWorld font = do
   sculptures <- buildSculptures font
   return World 
@@ -284,7 +287,7 @@ render shapes projection44 view44 = do
                . shiftBy (V3 (-0.15) (0.65) 0.4)
                $ newPose { _posPosition = obj ^. scpPose . posPosition }
         model44 = transformationFromPose pose
-        mvp = projection44 !*! view44 !*! model44 !*! scaleMatrix 0.0002
+        mvp = projection44 !*! view44 !*! model44 !*! scaleMatrix 0.02
     renderText font (bufText buffer) (bufSelection buffer) mvp
   -- glEnable GL_DEPTH_TEST
   glEnable  GL_CULL_FACE
