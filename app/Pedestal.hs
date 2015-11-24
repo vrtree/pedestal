@@ -36,7 +36,7 @@ enableDevices :: [VRPalDevices]
 enableDevices = [UseOpenVR]
 -- enableDevices = []
 
-buildSculptures :: (Enum k, Num k, Ord k) => Font -> IO (Map.Map k Sculpture)
+buildSculptures :: Font -> IO (Map SculptureID Sculpture)
 buildSculptures font = do
   sculptureGeo <- cubeGeometry (V3 sculptureSize sculptureSize sculptureSize) (V3 1 1 1)
 
