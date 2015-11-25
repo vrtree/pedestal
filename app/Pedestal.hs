@@ -86,7 +86,7 @@ newWorld font = do
 main :: IO ()
 main = do
 
-  vrPal@VRPal{..} <- reacquire 0 $ initVRPal "Pedestal" GCPerFrame enableDevices
+  vrPal@VRPal{..} <- reacquire 0 $ initVRPal "Pedestal" enableDevices
   
   glyphProg <- createShaderProgram "app/shaders/glyph.vert" "app/shaders/glyph.frag"
   font      <- createFont "app/fonts/SourceCodePro-Regular.ttf" 50 glyphProg
