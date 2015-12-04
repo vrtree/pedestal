@@ -11,4 +11,5 @@ packages:
 - '../openvr-hs'
 - '../freetype-gl-mini'
 - '../tinyrick'
+- '../bindings-GLFW'
 resolver: nightly-2015-12-03

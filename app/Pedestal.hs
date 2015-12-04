@@ -11,8 +11,8 @@ import Graphics.GL.Pal
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.Lens.Extra
-import Data.Maybe
 import qualified Data.Map.Strict as Map
+import Data.Map (Map)
 
 import Graphics.GL.Freetype
 import TinyRick
@@ -78,6 +78,8 @@ newWorld font = do
                                                 (0.3 * sin (4 * cos x))
                               }  
         , _wldPlayer  = newPose { _posOrientation = axisAngle (V3 0 1 0) 3.14 }
+        -- Moves world left and forward for seated dev
+        -- , _wldPlayer  = newPose { _posPosition = V3 (-2) 0 1 }
         , _wldRoom    = Room { _romPose = newPose }
         , _wldTime    = 0
         , _wldLight   = newPose { _posPosition = V3 1 2 0 }
@@ -110,6 +112,7 @@ main = do
   -}
 
   world <- reacquire 1 (newWorld font)
+  -- world <- newWorld font
 
   {-
 
@@ -122,9 +125,6 @@ main = do
 
     delta <- realToFrac <$> liftIO gpGetDelta
     wldTime += delta
-
-    objects <- use wldObjects
-
 
     -- applyMouseLook gpWindow wldPlayer
     -- applyWASD gpWindow wldPlayer
@@ -142,26 +142,7 @@ main = do
       -- Pass events to the active sculpture
       handleTextBufferEvent gpWindow e (wldSculptures . ix focusedSculptureID . scpBuffer)
 
-      -- Continuously save the file
-      let save = do
-            persistState 1
-            maybeBuffer <- preuse (wldSculptures . ix focusedSculptureID . scpBuffer)
-            forM_ maybeBuffer $ \buffer -> do 
-              updateIndicesAndOffsets buffer
-              saveTextBuffer          buffer
-      onChar e $         \_ -> save
-      onKey  e Key'Enter     $ save
-      onKey  e Key'Backspace $ save
-      onKey  e Key'Up        $ save
-      onKey  e Key'Down      $ save
-      onKey  e Key'Left      $ save
-      onKey  e Key'Right     $ save
-
-    -- controls for debugging 
-    whenKeyPressed gpWindow Key'Z $ liftIO $ putStrLn $ "oh" ++ show [((objects !! 0) ^. posPosition )] ++ " yeah"
-
     view44 <- viewMatrixFromPose <$> use wldPlayer
-
 
     -- Once we have set up all the neccesary information,
     -- Render away!
@@ -284,11 +265,11 @@ render shapes projection44 view44 = do
         font   = bufFont buffer
         pose   = id
                . rotateBy (axisAngle (V3 1 0 0) (-pi/4 - 0.4))
-               . shiftBy (V3 (-0.15) (0.65) 0.4)
+               . shiftBy (V3 (-0.1) (0.57) 0.55)
                $ newPose { _posPosition = obj ^. scpPose . posPosition }
-        model44 = transformationFromPose pose
-        mvp = projection44 !*! view44 !*! model44 !*! scaleMatrix 0.02
-    renderText font (bufText buffer) (bufSelection buffer) mvp
+        model44 = transformationFromPose pose !*! scaleMatrix 0.3
+        mvp = projection44 !*! view44 !*! model44
+    renderText font (V3 1 1 1) (bufText buffer) mvp
   -- glEnable GL_DEPTH_TEST
   glEnable  GL_CULL_FACE
   glDisable GL_BLEND
@@ -344,15 +325,15 @@ drawShape' model44 projection44 view44 shape = do
   time  <- view wldTime
 
   -- Recalculating for each object. doesn't make sense!
-  uniformV3 uEye (fromMaybe view44 (inv44 view44) ^. translation)
+  uniformV3 uEye (inv44 view44 ^. translation)
   uniformV3 uLight (light ^. posPosition - V3 0 0.3 0)
   uniformF  uTime time
 
   uniformM44 uViewProjection      (projection44 !*! view44)
   uniformM44 uModelViewProjection (projection44 !*! view44 !*! model44)
-  uniformM44 uInverseModel        (fromMaybe model44 (inv44 model44))
+  uniformM44 uInverseModel        (inv44 model44)
   uniformM44 uModel               model44
-  uniformM44 uNormalMatrix        (transpose . safeInv44 $ view44 !*! model44 )
+  uniformM44 uNormalMatrix        (transpose . inv44 $ view44 !*! model44 )
 
   let vc = geoVertCount (sGeometry shape)
   glDrawElements GL_TRIANGLES vc GL_UNSIGNED_INT nullPtr
