@@ -54,13 +54,12 @@ buildSculptures font = do
     let shaderPath = "app/shaders/sculptures/" ++ shaderName ++ ".frag"
     shaderComp <- shaderRecompiler "app/shaders/raytrace.vert" shaderPath (makeShape sculptureGeo)
     
-    buffer <- bufferFromFile font shaderPath
-    updateIndicesAndOffsets buffer
+    textRenderer <- textRendererFromFile font shaderPath
     let sculpture = Sculpture
-                  { _scpPose     = newPose { _posPosition = V3 0 0 0}
-                  , _scpGetShape = shaderComp 
-                  , _scpBuffer   = buffer
-                  , _scpScroll   = 0
+                  { _scpPose         = newPose { _posPosition = V3 0 0 0}
+                  , _scpGetShape     = shaderComp 
+                  , _scpTextRenderer = textRenderer
+                  , _scpScroll       = 0
                   }
 
     return (i, sculpture)
@@ -140,7 +139,7 @@ main = do
           min 100 (max (-1000) (s + scrollY))
 
       -- Pass events to the active sculpture
-      handleTextBufferEvent gpWindow e (wldSculptures . ix focusedSculptureID . scpBuffer)
+      handleTextBufferEvent gpWindow e (wldSculptures . ix focusedSculptureID . scpTextRenderer)
 
     view44 <- viewMatrixFromPose <$> use wldPlayer
 
@@ -261,15 +260,13 @@ render shapes projection44 view44 = do
   glDisable GL_CULL_FACE
   glEnable  GL_BLEND
   forM_ sculptures $ \obj -> do
-    let buffer = obj ^. scpBuffer
-        font   = bufFont buffer
-        pose   = id
+    let pose   = id
                . rotateBy (axisAngle (V3 1 0 0) (-pi/4 - 0.4))
                . shiftBy (V3 (-0.1) (0.57) 0.55)
                $ newPose { _posPosition = obj ^. scpPose . posPosition }
         model44 = transformationFromPose pose !*! scaleMatrix 0.3
         mvp = projection44 !*! view44 !*! model44
-    renderText font (V3 1 1 1) (bufText buffer) mvp
+    renderText (obj ^. scpTextRenderer) mvp (V3 1 1 1)
   -- glEnable GL_DEPTH_TEST
   glEnable  GL_CULL_FACE
   glDisable GL_BLEND

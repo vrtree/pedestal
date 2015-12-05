@@ -104,7 +104,7 @@ makeLenses ''Shapes
 data Sculpture = Sculpture
   { _scpPose     :: !(Pose GLfloat)
   , _scpGetShape :: !(IO (Shape Uniforms, String))
-  , _scpBuffer   :: !TextBuffer
+  , _scpTextRenderer   :: !TextRenderer
   , _scpScroll   :: !GLfloat
   }
 makeLenses ''Sculpture
