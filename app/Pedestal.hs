@@ -118,7 +118,7 @@ main = do
     Main Game Loop!
 
   -}
-  void . flip runStateT world . whileWindow gpWindow $ do
+  void . flip runStateT world . whileVR vrPal $ \headM44 hands -> do
     
     persistState 1
 
@@ -141,11 +141,11 @@ main = do
       -- Pass events to the active sculpture
       handleTextBufferEvent gpWindow e (wldSculptures . ix focusedSculptureID . scpTextRenderer)
 
-    view44 <- viewMatrixFromPose <$> use wldPlayer
+    [player <- use wldPlayer
 
     -- Once we have set up all the neccesary information,
     -- Render away!
-    immutably $ renderWith vrPal view44 
+    immutably $ renderWith vrPal player headM44 
       (glClear (GL_COLOR_BUFFER_BIT .|. GL_DEPTH_BUFFER_BIT))
       (render shapes)
 
@@ -256,7 +256,6 @@ render shapes projection44 view44 = do
           model44 = transformationFromPose $ shiftBy (V3 0 (-0.25) (0.4)) pose
       drawShape' model44 projection44 view44 codeHolderShape
   -- And their code
-  -- glDisable GL_DEPTH_TEST
   glDisable GL_CULL_FACE
   glEnable  GL_BLEND
   forM_ sculptures $ \obj -> do
@@ -267,7 +266,6 @@ render shapes projection44 view44 = do
         model44 = transformationFromPose pose !*! scaleMatrix 0.3
         mvp = projection44 !*! view44 !*! model44
     renderText (obj ^. scpTextRenderer) mvp (V3 1 1 1)
-  -- glEnable GL_DEPTH_TEST
   glEnable  GL_CULL_FACE
   glDisable GL_BLEND
   {-
@@ -280,9 +278,6 @@ render shapes projection44 view44 = do
 
   -- FIXME this needs to be synced with raytrace.frag NUM_POINTS
   let points = take 4 $ flip map objects $ \i -> (i ^. posPosition)
-
-  --liftIO $ putStrLn $ show (points !! 0)
-  --liftIO $ putStrLn $ show (points !! 1)
 
   glDisable GL_CULL_FACE
   
